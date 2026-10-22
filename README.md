@@ -22,20 +22,20 @@ Place one tractogram per subject under `data/train/` (nested directories are sea
 
 ## Train
 
-The [pretraining example](configs/pretrain.example.2026-10-22.annotated.yaml) and [formal-training example](configs/train.example.2026-10-22.annotated.yaml) explain every parameter in English comments, including all nested loss weights. Comments describe purpose, units, choices, and interactions with checkpoints and training phases. Earlier examples are retained as historical snapshots.
+The [pretraining example](configs/pretrain.yaml) and [formal-training example](configs/train.yaml) explain every parameter in English comments, including all nested loss weights. Comments describe purpose, units, choices, and interactions with checkpoints and training phases.
 
-Run commands from the repository root. Copy a dated example to a new dated file before changing dataset paths or training settings. Training writes checkpoints to `outputs/pretrain/pretrain.pth` and `outputs/train/TractoRC.pth`.
+Run commands from the repository root. Edit the example configs to set your dataset paths and training settings. Training writes checkpoints to `outputs/pretrain/pretrain.pth` and `outputs/train/TractoRC.pth`.
 
 ```bash
-python scripts/train.py --config configs/pretrain.example.2026-10-22.annotated.yaml
-python scripts/train.py --config configs/train.example.2026-10-22.annotated.yaml
+python scripts/train.py --config configs/pretrain.yaml
+python scripts/train.py --config configs/train.yaml
 ```
 
 The formal-training config loads the pretraining checkpoint at `outputs/pretrain/pretrain.pth`, so run pretraining first. For distributed training, launch with `torchrun`; `batch_size` in YAML is the global batch across all processes and must divide evenly by the process count. These example values use global batches 4 and 20 respectively, matching four processes (per-process batches 1 and 5):
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --standalone --nproc_per_node=4 scripts/train.py --config configs/pretrain.example.2026-10-22.annotated.yaml
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --standalone --nproc_per_node=4 scripts/train.py --config configs/train.example.2026-10-22.annotated.yaml
+CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --standalone --nproc_per_node=4 scripts/train.py --config configs/pretrain.yaml
+CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --standalone --nproc_per_node=4 scripts/train.py --config configs/train.yaml
 ```
 
 DDP training requires CUDA. The YAML `gpu` value selects the device for a single process; `torchrun` selects each worker's local device from `LOCAL_RANK`. Formal DDP training uses `pairing: all`; chain pairing is single-GPU only.
@@ -83,7 +83,7 @@ The inference scripts accept `--device auto`, `cpu`, a CUDA index such as `0`, o
 
 ## Checkpoints and weights
 
-Model checkpoints must include the current TractoRC architecture metadata and compatible model state dictionary. Older or otherwise incompatible checkpoints are rejected; retrain from the affine pretraining stage with this release. The repository does not distribute pretrained weights. The dated YAML files are examples, not pretrained models.
+Model checkpoints must include the current TractoRC architecture metadata and compatible model state dictionary. Older or otherwise incompatible checkpoints are rejected; retrain from the affine pretraining stage with this release. The repository does not distribute pretrained weights. The YAML files are examples, not pretrained models.
 
 ## Code layout and checks
 

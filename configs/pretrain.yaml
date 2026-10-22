@@ -1,6 +1,5 @@
-# TractoRC affine-equivariant pretraining: fully annotated example.
+# TractoRC affine-equivariant pretraining: example.
 # Run from the repository root; these are resource-intensive training settings.
-# Values match the original example; only documentation has been added.
 # Unspecified parameters retain scripts/train.py DEFAULT_CONFIG values.
 # When loading a checkpoint, its saved feat_len, num_keypoints, num_clusters,
 # cluster_temperature, keypoint_temperature, and keypoint_head_append_coords

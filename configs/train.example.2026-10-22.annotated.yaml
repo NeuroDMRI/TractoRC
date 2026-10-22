@@ -1,0 +1,241 @@
+# TractoRC joint registration and clustering: fully annotated example.
+# Run from the repository root; these are resource-intensive training settings.
+# Values match the original example; only documentation has been added.
+# Unspecified parameters retain scripts/train.py DEFAULT_CONFIG values.
+# When loading a checkpoint, its saved feat_len, num_keypoints, num_clusters,
+# cluster_temperature, keypoint_temperature, and keypoint_head_append_coords
+# override the corresponding YAML architecture settings.
+
+# Directory containing one tractogram per subject; searched recursively.
+# Relative paths are resolved from the working directory (the repository root).
+train_path: data/train
+
+# Directory created for formal-training checkpoints.
+# Relative paths are resolved from the working directory.
+output_path: outputs/train
+
+# Checkpoint filename inside output_path; the saved extension is .pth.
+# The main checkpoint is updated after each epoch.
+model_name: TractoRC.pth
+
+# False runs inter-subject registration and clustering training.
+# Complete the separate pretraining example before using this configuration.
+pretrain: false
+
+# Current-format checkpoint to load; this path matches the pretraining output.
+# resume_training controls weights-only initialization versus full resumption.
+# null would train from scratch instead of using pretrained weights.
+use_checkpoint: outputs/pretrain/pretrain.pth
+
+# False loads checkpoint model weights but resets optimizer, scheduler, and epoch.
+# True also restores their saved state to continue interrupted formal training.
+# Only has an effect when use_checkpoint is a checkpoint path.
+resume_training: false
+
+# Total number of epochs to reach, including epochs already completed on resume.
+# Epoch indices run from 0 to epochs - 1.
+epochs: 500
+
+# Global number of subject-pair samples per step, across all DDP ranks.
+# Must divide evenly by the rank count; 4 ranks give 5 pair samples per GPU.
+batch_size: 20
+
+# Initial AdamW learning rate; cosine scheduling adjusts it during training.
+# Use a positive value; smaller values produce smaller parameter updates.
+learning_rate: 0.0001
+
+# Logical CUDA device index for a single-process run, after CUDA_VISIBLE_DEVICES.
+# With torchrun, LOCAL_RANK selects the device instead; without CUDA, CPU is used.
+gpu: 0
+
+# Enable automatic mixed precision (float16 on CUDA, bfloat16 on CPU).
+# CUDA training also uses gradient scaling; false uses full-precision operations.
+use_amp: true
+
+# Base seed for Python, NumPy, PyTorch, training sampling, and shuffling.
+# Each DDP rank uses seed + rank for its process RNGs; this is not a guarantee
+# of bitwise determinism for all CUDA operations.
+seed: 42
+
+# Seed for deterministic validation sampling and the validation DataLoader.
+# Only used when val_path is supplied. This example omits val_path (default:
+# null), so checkpoints are saved each epoch without best-checkpoint selection.
+val_seed: 43
+
+# Number of DGCNN output feature channels per streamline point.
+# This is the backbone feature width, not the final streamline embedding dimension.
+feat_len: 1024
+
+# Number of learned keypoints extracted per tractogram for correspondence fitting.
+# More keypoints increase keypoint-head memory and transform-fitting cost.
+num_keypoints: 256
+
+# Number of learned streamline cluster centroids and output cluster IDs.
+# Centroid initialization needs at least this many embeddings after filtering.
+num_clusters: 800
+
+# Positive shape/scale parameter of the normalized Student-t assignment kernel.
+# Controls cluster probabilities; this is not a softmax temperature.
+cluster_temperature: 1.0
+
+# Positive softmax temperature for keypoint attention over streamline points.
+# Lower values concentrate attention; higher values produce broader averages.
+keypoint_temperature: 0.6
+
+# Append normalized XYZ coordinates to backbone features in the keypoint head.
+# This changes the head input width and is part of the checkpoint architecture.
+keypoint_head_append_coords: true
+
+# Number of evenly resampled points per streamline.
+# Keep this value consistent between training and inference.
+nb_points: 14
+
+# Maximum streamlines sampled without replacement per subject per batch item.
+# Provide at least this many after length filtering to keep batch shapes equal;
+# larger samples increase memory and pairwise loss computation costs.
+num_samples: 3400
+
+# Inclusive minimum streamline length in millimetres, measured before resampling.
+min_length: 30
+
+# Inclusive maximum streamline length in millimetres, measured before resampling.
+# Must be at least min_length.
+max_length: 300
+
+# Subject-pair strategy: all enumerates every unordered pair; chain shuffles
+# subjects into adjacent cyclic pairs each epoch. Formal DDP requires all;
+# chain is single-process only. Formal training needs at least two subjects.
+pairing: all
+
+# Subtract each tractogram's median point coordinate from its geometry if true.
+# False preserves shared world coordinates; backbone features are still normalized.
+recenter: false
+
+# Number of worker processes for initial tractogram loading (at least 1).
+# Each DDP rank loads its own dataset; higher values can increase RAM usage.
+dataset_load_workers: 8
+
+# Number of DataLoader worker processes per rank for fetching training batches.
+# Zero loads batches in the main process; more workers can increase RAM usage.
+dataloader_workers: 8
+
+# Number of batches prefetched by each DataLoader worker (at least 1).
+# Only used when dataloader_workers is greater than zero.
+dataloader_prefetch_factor: 4
+
+# affine_refine_tps fits a coarse affine, re-extracts moving keypoints, then
+# fits the residual transform selected by regis_type. The alternative
+# single_tps fits regis_type directly from the original keypoints.
+registration_pipeline: affine_refine_tps
+
+# Nonnegative multiplier on the coarse affine registration loss.
+# Used only by affine_refine_tps while registration loss is active; the final
+# alignment loss has its own independent loss_weights.registration multiplier.
+coarse_loss_weight: 0.25
+
+# Normalization for coarse-aligned moving features before keypoint re-extraction:
+# fixed uses the fixed tractogram's center/scale; per_side uses the original
+# moving center/scale. Only used by affine_refine_tps; match at inference.
+refine_feature_stats: fixed
+
+# Training transform fit, or the residual fit in affine_refine_tps.
+# tps_loguniform samples TPS regularization lambda log-uniformly in [1e-6, 10];
+# tps_uniform samples uniformly in [0, 10]; tps_<positive number> fixes lambda.
+# rigid and affine are also accepted transform specifications.
+regis_type: tps_loguniform
+
+# Transform specification used for validation instead of regis_type.
+# tps_0.05 fixes TPS regularization lambda at 0.05; other options match
+# regis_type. Only used when a validation dataset (val_path) is supplied.
+# Inference is configured separately with its --regis_type option.
+eval_regis_type: tps_0.05
+
+# Orientation-invariant streamline distance: RMS or MeanSquared.
+# RMS is the root mean square coordinate difference (millimetres); MeanSquared
+# is its square. Both choose the better of forward and reversed point order.
+# Used by registration loss and embedding metric targets.
+distance: RMS
+
+# Weight the keypoint transform fit by fixed/moving confidence products if true.
+# False uses an unweighted fit. In affine_refine_tps, weights affect only the
+# coarse affine fit; the residual fit remains unweighted.
+use_keypoint_weights: false
+
+# Number of formal warm-up epochs using enabled registration/embedding losses
+# without assignment or balance. At this zero-based epoch, initialize centroids
+# and begin joint training. Zero initializes before epoch 0. Keep this below
+# epochs when clustering should be trained (490 means warm-up epochs 0-489).
+precluster_epochs: 490
+
+# Exclusive zero-based end of the joint clustering phase; -1 means epochs.
+# At and after this boundary, only registration remains active: the backbone
+# and clustering head are frozen, while the keypoint head can still train.
+# Here 500 keeps joint training active through the final epoch 499.
+freeze_clustering_after_epoch: 500
+
+# Comma-separated enabled formal losses: registration, assignment, embedding,
+# and balance. The phase schedule further restricts which ones are active;
+# keypoint regularization is controlled separately by its own weight.
+loss_components: registration,assignment,embedding,balance
+
+# Nonnegative multipliers for the enabled formal loss terms below.
+# The training phase must enable a term for its weight to take effect.
+loss_weights:
+
+  # Weight of final-alignment symmetric nearest-streamline registration loss.
+  # With val_path set, weighted validation Reg selects the best checkpoint
+  # after centroid initialization.
+  registration: 1.0
+
+  # Weight of DEC KL(target || prediction), using a detached, sharpened
+  # target distribution across fixed and moving samples.
+  assignment: 0.02
+
+  # Weight of the batch-level cluster-usage penalty toward a uniform
+  # distribution, discouraging assignment collapse to a few clusters.
+  balance: 0.01
+
+  # Weight of Huber matching between pairwise embedding distances and
+  # world-coordinate streamline distances; delta is embedding_metric_delta.
+  embedding: 0.01
+
+# Positive Huber transition threshold for embedding-versus-geometric distance
+# errors. With RMS distances, its units are millimetres; with MeanSquared,
+# its units are squared millimetres. It is not a clustering threshold.
+embedding_metric_delta: 1.0
+
+# Nonnegative weight of keypoint repulsion after tractogram center/scale
+# normalization, discouraging collapsed keypoints. Zero disables the term.
+# In formal training it applies only while registration loss is active.
+keypoint_regularization_weight: 0.02
+
+# Centroid initialization algorithm: kmeans, GMM, or null (defaults to kmeans).
+# Despite its name, this selects clustering initialization, not the training
+# stage or checkpoint. Formal training initializes at precluster_epochs.
+pretrain_init: kmeans
+
+# Stride over the concatenated extracted embeddings for centroid initialization.
+# 5 keeps every fifth embedding; 1 uses all. Must leave enough embeddings for
+# num_clusters after outlier filtering. Does not subsample training batches.
+clustering_fiber_interval: 5
+
+# Number of K-means initializations per main clustering fit (positive integer).
+# More restarts cost time and can improve the fitted solution; the GMM path
+# uses its own fixed restart count instead.
+cluster_kmeans_n_init: 10
+
+# Number of centroid fit/prune rounds before a final fit and geometric-median
+# refinement. Zero skips these rounds but still performs the final fit.
+# Pruning stops early if the proposed survivors would be fewer than num_clusters.
+cluster_iterations: 2
+
+# Lower-tail cutoff multiplier: mean(score) - this value * std(score).
+# Used on IsolationForest scores and on within-cluster/global similarity scores
+# during centroid initialization. Larger values generally prune fewer samples.
+# This is a score threshold, not a distance in millimetres.
+cluster_outlier_std_threshold: 3.0
+
+# Minimum subject coverage fraction for clusters during centroid pruning:
+# distinct subjects represented / total dataset subjects. Use a value in [0, 1];
+# 0.8 requires at least 80% subject coverage. It is not a streamline fraction.
+cluster_subject_threshold: 0.8

@@ -1,0 +1,23 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Local datasets, model weights, and generated results
+data/
+outputs/
+logs/
+*.pth
+*.pt
+*.ckpt
+*.log
+
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store

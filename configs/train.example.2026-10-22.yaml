@@ -1,0 +1,62 @@
+# Joint registration and clustering training example.
+# Run from the repository root. Settings follow the final-model recipe and
+# are resource-intensive; reduce epochs/sample counts for a trial.
+train_path: data/train
+output_path: outputs/train
+model_name: TractoRC.pth
+
+pretrain: false
+use_checkpoint: outputs/pretrain/pretrain.pth
+resume_training: false
+
+epochs: 500
+# Global batch size. With four torchrun processes this is five pairs per GPU.
+batch_size: 20
+learning_rate: 0.0001
+gpu: 0
+use_amp: true
+seed: 42
+val_seed: 43
+
+feat_len: 1024
+num_keypoints: 256
+num_clusters: 800
+cluster_temperature: 1.0
+keypoint_temperature: 0.6
+keypoint_head_append_coords: true
+
+nb_points: 14
+num_samples: 3400
+min_length: 30
+max_length: 300
+pairing: all
+recenter: false
+dataset_load_workers: 8
+dataloader_workers: 8
+dataloader_prefetch_factor: 4
+
+registration_pipeline: affine_refine_tps
+coarse_loss_weight: 0.25
+refine_feature_stats: fixed
+regis_type: tps_loguniform
+eval_regis_type: tps_0.05
+distance: RMS
+use_keypoint_weights: false
+
+precluster_epochs: 490
+freeze_clustering_after_epoch: 500
+loss_components: registration,assignment,embedding,balance
+loss_weights:
+  registration: 1.0
+  assignment: 0.02
+  balance: 0.01
+  embedding: 0.01
+
+embedding_metric_delta: 1.0
+keypoint_regularization_weight: 0.02
+pretrain_init: kmeans
+clustering_fiber_interval: 5
+cluster_kmeans_n_init: 10
+cluster_iterations: 2
+cluster_outlier_std_threshold: 3.0
+cluster_subject_threshold: 0.8

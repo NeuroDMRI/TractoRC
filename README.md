@@ -87,10 +87,4 @@ Model checkpoints must include the current TractoRC architecture metadata and co
 
 ## Code layout and checks
 
-`tractorc/` contains the model, data loading, training losses, alignment, and I/O helpers. `scripts/` provides the command-line entrypoints, and `configs/` holds the pretraining and training examples. Data, weights, and generated outputs are ignored by Git.
-
-Run the CPU/Gloo distributed and checkpoint tests with:
-
-```bash
-python tests/test_distributed_training.py
-```
+`tractorc/` contains the model, data loading, training losses, alignment, and I/O helpers. `scripts/` provides the command-line entrypoints, and `configs/` holds the pretraining and training examples.

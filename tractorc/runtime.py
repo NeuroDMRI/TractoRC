@@ -140,7 +140,7 @@ def add_outlier_filter_args(parser):
     parser.add_argument(
         "--mad-z",
         type=float,
-        default=3.5,
+        default=0.80,
         help="Reject scores below median - mad_z * 1.4826 * MAD.",
     )
     parser.add_argument(

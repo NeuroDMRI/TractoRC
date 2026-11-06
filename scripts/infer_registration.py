@@ -40,10 +40,10 @@ def parse_args():
     parser.add_argument(
         "--regis_type",
         nargs="+",
-        default=("tps_0.5",),
+        default=("tps_0.01",),
         metavar="TYPE",
         help=(
-            "Ordered registration stages, e.g. '--regis_type affine tps_0.5'. "
+            "Ordered registration stages, e.g. '--regis_type affine tps_0.01'. "
             "Comma-separated stages are also accepted. In the "
             "affine_refine_tps pipeline this specifies the fine (residual) "
             "stage fitted after moving re-extraction."

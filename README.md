@@ -22,7 +22,7 @@ Place one tractogram per subject under `data/train/` (nested directories are sea
 
 ## Pretrained checkpoint
 
-Download [the pretrained release](https://github.com/yishengpoxiao/TractoRC/releases/tag/pretrained-2026-11-06) and place these assets in `checkpoints/`:
+Download [the pretrained release](https://github.com/NeuroDMRI/TractoRC/releases/tag/pretrained-2026-11-06) and place these assets in `checkpoints/`:
 
 - `TractoRC_pretrained_k256_c800.pth` — the trained registration and clustering model (26,209,918 bytes).
 - `TractoRC_pretrained_k256_c800.pth.sha256` — its SHA256 checksum.
@@ -32,7 +32,7 @@ With the [GitHub CLI](https://cli.github.com/) installed and authenticated where
 ```bash
 mkdir -p checkpoints
 gh release download pretrained-2026-11-06 \
-  --repo yishengpoxiao/TractoRC \
+  --repo NeuroDMRI/TractoRC \
   --pattern 'TractoRC_pretrained_k256_c800.pth*' --dir checkpoints
 (cd checkpoints && sha256sum -c TractoRC_pretrained_k256_c800.pth.sha256)
 ```

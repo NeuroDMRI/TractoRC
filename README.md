@@ -211,3 +211,20 @@ The inference, group-registration, reclustering, and atlas scripts accept `--dev
 ## Code layout
 
 `tractorc/` contains the model, data loading, training losses, alignment, and I/O helpers. `scripts/` provides the command-line entrypoints, and `configs/` holds the pretraining and training examples. Keep downloaded weights, datasets, and generated results out of source commits; pretrained weights are distributed as Release assets.
+
+## Citation
+
+If you use TractoRC in your research, please cite [our paper](https://arxiv.org/abs/2603.10418):
+
+```bibtex
+@misc{li2026tractorc,
+  title         = {{TractoRC}: A Unified Probabilistic Learning Framework for Joint Tractography Registration and Clustering},
+  author        = {Yijie Li and Xi Zhu and Junyi Wang and Ye Wu and Lauren J. O'Donnell and Fan Zhang},
+  year          = {2026},
+  eprint        = {2603.10418},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.CV},
+  doi           = {10.48550/arXiv.2603.10418},
+  url           = {https://arxiv.org/abs/2603.10418}
+}
+```

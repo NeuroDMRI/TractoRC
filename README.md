@@ -7,7 +7,7 @@ TractoRC learns a shared tractography representation for keypoint-based registra
 Create and activate the Python 3.10 environment, then install the project dependencies:
 
 ```bash
-git clone https://github.com/yishengpoxiao/TractoRC.git
+git clone https://github.com/NeuroDMRI/TractoRC.git
 cd TractoRC
 conda create -n TractoRC python=3.10
 conda activate TractoRC

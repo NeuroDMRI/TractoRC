@@ -32,10 +32,10 @@ def parse_args():
     parser.add_argument(
         "--regis_type",
         nargs="+",
-        default=("tps_0.01",),
+        default=("tps_0.05",),
         metavar="TYPE",
         help=(
-            "Ordered registration stages, e.g. '--regis_type affine tps_0.01'. "
+            "Ordered registration stages, e.g. '--regis_type affine tps_0.05'. "
             "Comma-separated stages are also accepted."
         ),
     )

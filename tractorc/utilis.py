@@ -12,7 +12,7 @@ from scipy.spatial.distance import cdist
 import torch
 import vtk
 from dipy.io.dpy import Dpy
-from dipy.tracking.streamline import set_number_of_points, transform_streamlines
+from dipy.tracking.streamline import length, set_number_of_points, transform_streamlines
 
 
 EPS = 1e-6
@@ -129,11 +129,23 @@ def streamline_feature_stats(streamlines, center=None, percentile=95, eps=EPS):
 
 
 def resample_streamlines(streamlines, num_points):
-    """Resample an iterable of streamlines to a common point count."""
-    resampled = set_number_of_points(list(streamlines), num_points)
-    if not resampled:
+    """Resample streamlines, preserving constant coordinates for zero lengths."""
+    streamlines = list(streamlines)
+    if not streamlines:
         return np.empty((0, num_points, 3), dtype=np.float32)
-    return np.asarray(resampled, dtype=np.float32)
+    zero_length = np.asarray(length(streamlines)) == 0
+    if zero_length.any():
+        resampled = np.empty((len(streamlines), num_points, 3), dtype=np.float32)
+        nonzero_indices = np.flatnonzero(~zero_length)
+        if len(nonzero_indices):
+            resampled[nonzero_indices] = set_number_of_points(
+                [streamlines[index] for index in nonzero_indices], num_points
+            )
+        # DIPY's zero-length interpolation can leave coordinates uninitialized.
+        for index in np.flatnonzero(zero_length):
+            resampled[index] = streamlines[index][0]
+        return resampled
+    return np.asarray(set_number_of_points(streamlines, num_points), dtype=np.float32)
 
 
 TRACT_EXTENSIONS = ("*.trk", "*.tck", "*.vtk", "*.vtp", "*.fib", "*.dpy", "*.tt.gz")

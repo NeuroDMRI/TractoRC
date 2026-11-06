@@ -18,7 +18,7 @@ For CUDA training, install a PyTorch build compatible with the installed CUDA dr
 
 ## Data layout
 
-Place one tractogram per subject under `data/train/` (nested directories are searched recursively). Training and directory-based workflows discover `.trk`, `.tck`, `.vtk`, `.vtp`, `.fib`, `.dpy`, and `.tt.gz` files recursively. Single-file inference also accepts uncompressed `.tt`. Provide coordinates in RAS+ millimetres in a shared physical/world frame across subjects; DSI Studio TinyTrack coordinates are transformed using the file's `trans_to_mni` affine. Tract lengths are interpreted in millimetres. Keep training and inference coordinates consistent.
+Place one tractogram per subject under `data/train/` (nested directories are searched recursively). Training and directory-based workflows discover `.trk`, `.tck`, `.vtk`, `.vtp`, `.fib`, `.dpy`, and `.tt.gz` files recursively. Single-file inference also accepts uncompressed `.tt`. Provide coordinates in RAS+ millimetres in a shared physical/world frame across subjects; DSI Studio TinyTrack coordinates are transformed using the file's `trans_to_mni` affine. Tract lengths are interpreted in millimetres. Training, pairwise/group registration, reclustering, and atlas creation use the inclusive range **0–300 mm**, removing the positive minimum-length cutoff. Keep training and inference coordinates consistent.
 
 ## Pretrained checkpoint
 
@@ -59,7 +59,7 @@ Run all commands from the repository root. Relative paths in commands and YAML f
 
 ### `train.py`: pretraining and joint training
 
-The [pretraining example](configs/pretrain.yaml) and [formal-training example](configs/train.yaml) explain every parameter in English comments, including all nested loss weights. Comments describe purpose, units, choices, and interactions with checkpoints and training phases.
+The [pretraining example](configs/pretrain.yaml) and [formal-training example](configs/train.yaml) explain every parameter in English comments, including all nested loss weights. The examples use `min_length: 0` and `max_length: 300`. Comments describe purpose, units, choices, and interactions with checkpoints and training phases.
 
 Copy the example configs and set your dataset paths and training settings in your own copies, then pass those paths with `--config`. The commands below show the shipped example filenames. Training writes checkpoints to `outputs/pretrain/pretrain.pth` and `outputs/train/TractoRC.pth`.
 
@@ -105,7 +105,7 @@ Required arguments are `--checkpoint`, `--moving`, `--fixed`, and `--output`.
 | `--refine_feature_stats` | `fixed` re-encodes coarse-aligned moving fibers with fixed-subject statistics; `per_side` uses the original per-subject statistics. |
 | `--regis_type tps_0.05` | Set the TPS stage explicitly. Ordered stages can be space- or comma-separated; in the coarse-to-fine pipeline these are the residual stages. |
 | `--nb_points`, `--num_samples` | Points per streamline and sampled streamlines for keypoint extraction. When `--num_samples` is left at the script default, the checkpoint's training value is preferred. |
-| `--min_length`, `--max_length` | Retain streamlines in the specified length range, in millimetres; defaults are 20 and 260. |
+| `--min_length`, `--max_length` | Retain streamlines in the specified length range, in millimetres; defaults are 0 and 300 (inclusive), with no positive minimum-length cutoff. |
 | `--transform_output` | Fitted transform path; defaults to `<output_stem>_transform.pt` next to `--output`. |
 | `--output_keypoints` | Also write moving, fixed, aligned, and, where applicable, refined keypoints as VTP files. |
 | `--apply_dir`, `--apply_output_dir` | Optional paired arguments: apply the same transform to anatomical `.vtk`/`.vtp` files recursively, preserving their relative paths and original point counts. |
@@ -155,7 +155,7 @@ python scripts/group_registration.py \
 
 Required arguments are `--checkpoint`, `--input_dir`, and `--output_dir`. Files are discovered recursively. `--regis_type` sets ordered transform stages; the example uses affine followed by TPS regularization **0.05**. Unlike pairwise `affine_refine_tps`, this script extracts keypoints once per subject and iterates their alignment to the group mean.
 
-`--nb_points` defaults to 14, `--num_iters` to 5, and `--min_length` / `--max_length` to 20 / 260 mm. Leaving `--num_samples` at its default prefers the checkpoint's training value. `--transform_batch_streamlines` controls transform application batches (default 10,000), and `--seed` controls streamline sampling.
+`--nb_points` defaults to 14, `--num_iters` to 5, and `--min_length` / `--max_length` to 0 / 300 mm (inclusive). Leaving `--num_samples` at its default prefers the checkpoint's training value. `--transform_batch_streamlines` controls transform application batches (default 10,000), and `--seed` controls streamline sampling.
 
 The output contains `mean_keypoints.vtp`, `<subject>_aligned.vtp`, and `<subject>_transform.pt`. Use distinct subject filenames to avoid output-name collisions. By default, only the final results are written directly under `--output_dir`. With `--save_each_iter`, intermediate results go into `iter_01/`, etc., and the final iteration goes into `final/`. Aligned tractograms contain the length-filtered, resampled streamlines.
 
@@ -183,7 +183,7 @@ Required arguments are `--checkpoint`, `--inputdir`, and `--output_path`.
 | `--cluster_kmeans_n_init` | K-means restarts; default 10. |
 | `--init` | `kmeans` (default) or `gmm`; the GMM path uses its own initialization settings. |
 
-Input tractograms are length-filtered to 20–260 mm. Initialization includes global outlier filtering and centroid refinement, so it may take substantial CPU time after GPU embedding extraction. At least `--clusters` embeddings must remain after subsampling and filtering. The output stores model weights and architecture metadata, without optimizer state or the original training configuration; it is intended for inference or a new training run, not exact training resumption. This script does not export tractograms or register subjects.
+Input tractograms are length-filtered to 0–300 mm (inclusive). Initialization includes global outlier filtering and centroid refinement, so it may take substantial CPU time after GPU embedding extraction. At least `--clusters` embeddings must remain after subsampling and filtering. The output stores model weights and architecture metadata, without optimizer state or the original training configuration; it is intended for inference or a new training run, not exact training resumption. This script does not export tractograms or register subjects.
 
 ### `atlas_creation.py`: pool clusters into an atlas
 
@@ -200,7 +200,7 @@ python scripts/atlas_creation.py \
   --device 0
 ```
 
-Required arguments are `--checkpoint`, `--inputdir`, and `--outdir`. `--batchsize` defaults to 30,000. Set `--nb_points 14` explicitly for the released checkpoint, because this script defaults to 30 points. Input tractograms are length-filtered to 20–260 mm and resampled. The filtering options are the same as for single-subject clustering above, but the MAD statistics are calculated on the pooled streamlines within each atlas cluster.
+Required arguments are `--checkpoint`, `--inputdir`, and `--outdir`. `--batchsize` defaults to 30,000. Set `--nb_points 14` explicitly for the released checkpoint, because this script defaults to 30 points. Input tractograms are length-filtered to 0–300 mm (inclusive) and resampled. The filtering options are the same as for single-subject clustering above, but the MAD statistics are calculated on the pooled streamlines within each atlas cluster.
 
 Outputs are `clusters/cluster_XXXXX.vtp` and `clusters/outliers/cluster_XXXXX_outliers.vtp` under `--outdir`. This script preserves the supplied input positions; it does not estimate registration transforms or write a voxel label map. Copy only the aligned tractograms into the atlas input directory: group-registration output also contains a `mean_keypoints.vtp` point cloud, which is not a tractogram. If group registration used `--save_each_iter`, take the `*_aligned.vtp` files from its `final/` directory.
 

@@ -4,7 +4,7 @@ import itertools
 
 from . import utilis
 
-from dipy.tracking.streamline import set_number_of_points, length
+from dipy.tracking.streamline import length
 import concurrent.futures
 import os
 
@@ -23,7 +23,7 @@ class TractographyData(object):
     Methods:
         resample_streamlines(nb_points, min_l, max_l): Resamples streamlines to a fixed number of points and filters by length.
     """
-    def __init__(self, input_path, point_per_streamline=11, min_length=20, max_length=260, recenter=False):
+    def __init__(self, input_path, point_per_streamline=11, min_length=0, max_length=300, recenter=False):
         super().__init__()
         self.input_path = input_path
 
@@ -58,9 +58,7 @@ class TractographyData(object):
             for streamline, streamline_length in zip(self.streamlines, streamline_lengths)
             if min_l <= streamline_length <= max_l
         ]
-        self.streamlines = np.asarray(
-            set_number_of_points(kept, nb_points), dtype=np.float32
-        )
+        self.streamlines = utilis.resample_streamlines(kept, nb_points)
 
     def random_sample(self, num_samples, rng=None):
         rng = np.random if rng is None else rng
@@ -90,8 +88,8 @@ class PairedTractographyDataset(Dataset):
         self,
         path,
         point_per_streamline=11,
-        min_length=20,
-        max_length=260,
+        min_length=0,
+        max_length=300,
         num_samples=3000,
         pretrain=False,
         seed=None,

@@ -41,8 +41,8 @@ def main():
     tract_dataset = dataset.PairedTractographyDataset(
         path=str(args.inputdir),
         point_per_streamline=args.nb_points,
-        min_length=20,
-        max_length=260,
+        min_length=0,
+        max_length=300,
         pretrain=True,
     )
 

@@ -60,8 +60,8 @@ DEFAULT_CONFIG = {
 
 
     "nb_points": 14,
-    "min_length": 20,
-    "max_length": 260,
+    "min_length": 0,
+    "max_length": 300,
     "num_samples": 5000,
     "dataset_load_workers": 4,
     "dataloader_workers": 0,

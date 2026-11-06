@@ -84,7 +84,8 @@ nb_points: 14
 num_samples: 16000
 
 # Inclusive minimum streamline length in millimetres, measured before resampling.
-min_length: 30
+# Zero removes the positive minimum-length cutoff; retain lengths from 0 to 300 mm.
+min_length: 0
 
 # Inclusive maximum streamline length in millimetres, measured before resampling.
 # Must be at least min_length.
